@@ -1,17 +1,35 @@
 import os
 import json
 import time
+import logging
 from google import genai
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
+# Silence noisy logs from google-genai SDK
+logging.getLogger("google_genai").setLevel(logging.ERROR)
+logging.getLogger("google.generativeai").setLevel(logging.ERROR)
 
 load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("GEMINI_API_KEY not found in .env file")
 
+
+def get_api_key():
+    """Read GEMINI_API_KEY from env (local) or Streamlit secrets (cloud)."""
+    key = os.getenv("GEMINI_API_KEY")
+    if key:
+        return key
+    try:
+        import streamlit as st
+        return st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        raise ValueError(
+            "GEMINI_API_KEY not found. Set it in .env for local, "
+            "or in Streamlit Cloud secrets for deployment."
+        )
+
+
+api_key = get_api_key()
 client = genai.Client(api_key=api_key)
 
 
@@ -72,7 +90,6 @@ Rules:
 - If no code is provided, set lines_reviewed to 0 and add a followup question asking for code.
 """
 
-# Fallback chain — ordered from most-preferred to last-resort
 MODEL_CHAIN = [
     "gemini-flash-latest",
     "gemini-3.5-flash",
@@ -83,7 +100,6 @@ MODEL_CHAIN = [
 
 
 def _try_model(model_name, user_prompt, max_attempts=2):
-    """Try a single model with N quick retries. Returns parsed Review or None."""
     for attempt in range(max_attempts):
         try:
             response = client.models.generate_content(
@@ -98,8 +114,7 @@ def _try_model(model_name, user_prompt, max_attempts=2):
             print(f"[OK] Reviewed using: {model_name}")
             return response.parsed
         except Exception as e:
-            err_name = type(e).__name__
-            print(f"[FAIL] {model_name} attempt {attempt+1}: {err_name}")
+            print(f"[FAIL] {model_name} attempt {attempt+1}: {type(e).__name__}")
             if attempt < max_attempts - 1:
                 time.sleep(2)
     return None
@@ -124,7 +139,7 @@ def review_code(code: str, language: str, focus: str) -> Review:
 
     raise RuntimeError(
         "All models in the fallback chain failed. "
-        "This usually means Google's API is having a bad day. Try again in a few minutes."
+        "Google's API may be having a bad day. Try again in a few minutes."
     )
 
 
