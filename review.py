@@ -164,3 +164,58 @@ if __name__ == "__main__":
     )
 
     print(json.dumps(result.model_dump(), indent=2))
+
+
+# ============================================================
+# GitHub PR diff fetcher (Step 7)
+# ============================================================
+import re
+import urllib.request
+import urllib.error
+
+PR_URL_RE = re.compile(
+    r"^https?://github\.com/(?P<owner>[\w.-]+)/(?P<repo>[\w.-]+)/pull/(?P<num>\d+)/?$"
+)
+
+
+def parse_pr_url(url: str):
+    """Return (owner, repo, pr_number) or raise ValueError if invalid."""
+    url = (url or "").strip()
+    m = PR_URL_RE.match(url)
+    if not m:
+        raise ValueError(
+            "Invalid GitHub PR URL. Expected format: "
+            "https://github.com/owner/repo/pull/123"
+        )
+    return m.group("owner"), m.group("repo"), int(m.group("num"))
+
+
+def fetch_pr_diff(pr_url: str) -> str:
+    """Fetch the unified diff of a public GitHub PR."""
+    owner, repo, num = parse_pr_url(pr_url)
+
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{num}"
+    req = urllib.request.Request(
+        api_url,
+        headers={
+            "Accept": "application/vnd.github.v3.diff",
+            "User-Agent": "code-review-bot",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            diff = resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            raise RuntimeError("PR not found. Check the URL, or the repo/PR may be private.")
+        if e.code == 403:
+            raise RuntimeError("GitHub API rate limit hit. Wait a bit, or try a different PR.")
+        raise RuntimeError(f"GitHub API error: HTTP {e.code}")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Could not reach GitHub API: {e.reason}")
+
+    if not diff.strip():
+        raise RuntimeError("PR diff is empty (no code changes to review).")
+
+    return diff

@@ -100,9 +100,9 @@ st.markdown("""
 
     /* ---------- Button ---------- */
     .stButton > button {
-        background-color: #238636 !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(240,246,252,0.1) !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #ffffff !important;
         border-radius: 8px !important;
         font-family: 'Inter', sans-serif !important;
         font-size: 1rem !important;
@@ -113,7 +113,7 @@ st.markdown("""
         width: 100% !important;
     }
     .stButton > button:hover {
-        background-color: #2ea043 !important;
+        background-color: #f0f0f0 !important;
         box-shadow: 0 0 0 3px rgba(46,160,67,0.25) !important;
     }
     .stButton > button:focus {
@@ -356,6 +356,119 @@ st.markdown("""
         to   { opacity: 1; transform: translateY(0); }
     }
 
+
+    /* ---------- Wizard progress ---------- */
+    .wizard-progress {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 1.75rem 0 2rem 0;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        flex-wrap: wrap;
+    }
+    .wp-dot {
+        width: 12px; height: 12px; border-radius: 50%;
+        border: 2px solid var(--border);
+        background: transparent;
+        transition: all 0.25s ease;
+        flex-shrink: 0;
+    }
+    .wp-dot.done {
+        background: var(--success);
+        border-color: var(--success);
+    }
+    .wp-dot.current {
+        background: var(--accent);
+        border-color: var(--accent);
+        animation: wp-pulse 1.6s ease-out infinite;
+    }
+    .wp-line {
+        width: 40px; height: 2px;
+        background: var(--border);
+        transition: background 0.25s ease;
+    }
+    .wp-line.done { background: var(--success); }
+    .wp-label {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-weight: 500;
+        margin-left: 0.75rem;
+    }
+    .wp-label strong { color: var(--text); font-weight: 500; }
+    @keyframes wp-pulse {
+        0%   { box-shadow: 0 0 0 0 rgba(88,166,255,0.55); }
+        70%  { box-shadow: 0 0 0 10px rgba(88,166,255,0); }
+        100% { box-shadow: 0 0 0 0 rgba(88,166,255,0); }
+    }
+
+    /* ---------- Step headers ---------- */
+    .step-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-weight: 500;
+        margin-bottom: 0.35rem;
+    }
+    .step-heading {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.02em;
+        margin-bottom: 1.5rem;
+        line-height: 1.3;
+    }
+
+    /* ---------- Radio pills (override default Streamlit radio) ---------- */
+    /* (previous radio-hide rule replaced — see new rule below) */
+
+    /* ---------- Secondary (Back) button ---------- */
+    .stButton > button[kind="secondary"] {
+        background-color: transparent !important;
+        color: var(--text) !important;
+        border: 1px solid var(--border) !important;
+    }
+    .stButton > button[kind="secondary"]:hover {
+        background-color: var(--surface) !important;
+        border-color: var(--border-bright) !important;
+        box-shadow: none !important;
+    }
+
+    /* Ensure text color in the pill is inherited, not red */
+
+    /* Pull the label text tight since the dot is gone */
+
+    /* ---------- Radio (input mode toggle) ---------- */
+    [data-testid="stRadio"] > label {
+        display: none !important;
+    }
+    [data-testid="stRadio"] div[role="radiogroup"] label {
+        color: var(--text) !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 0.95rem !important;
+        padding: 0.6rem 1.2rem !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+        background: var(--surface) !important;
+        margin-right: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+        transition: all 0.15s ease !important;
+        cursor: pointer !important;
+    }
+    [data-testid="stRadio"] div[role="radiogroup"] label:hover {
+        border-color: var(--border-bright) !important;
+        background: var(--surface-2) !important;
+    }
+    [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"],
+    [data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) {
+        border-color: #ffffff !important;
+        background: rgba(255,255,255,0.06) !important;
+        color: #ffffff !important;
+    }
+
     .top-progress {
         position: fixed; top: 0; left: 0; right: 0; height: 2px;
         background: linear-gradient(90deg, transparent, #39d353, transparent);
@@ -422,6 +535,44 @@ def render_finding(f):
     '''
 
 
+def render_wizard_progress(current):
+    """Render the 4-step progress indicator. current is 1..4."""
+    labels = ["input mode", "parameters", "code", "results"]
+    parts = []
+    for i in range(4):
+        if i < current - 1:
+            dot_cls = "wp-dot done"
+        elif i == current - 1:
+            dot_cls = "wp-dot current"
+        else:
+            dot_cls = "wp-dot"
+        parts.append(f'<div class="{dot_cls}"></div>')
+        if i < 3:
+            line_cls = "wp-line done" if i < current - 1 else "wp-line"
+            parts.append(f'<div class="{line_cls}"></div>')
+    label = labels[current - 1]
+    parts.append(
+        f'<span class="wp-label">step <strong>{current} / 4</strong> · {esc(label)}</span>'
+    )
+    return f'<div class="wizard-progress">{"".join(parts)}</div>'
+
+
+if "wizard_step" not in st.session_state:
+    st.session_state.wizard_step = 1
+if "last_result" not in st.session_state:
+    st.session_state.last_result = None
+if "input_mode" not in st.session_state:
+    st.session_state.input_mode = "Paste code"
+if "language" not in st.session_state:
+    st.session_state.language = "python"
+if "focus" not in st.session_state:
+    st.session_state.focus = "check bugs, security, and style"
+if "code" not in st.session_state:
+    st.session_state.code = ""
+if "pr_url" not in st.session_state:
+    st.session_state.pr_url = ""
+
+
 # HERO — no tagline
 st.markdown(
     f'''
@@ -434,126 +585,226 @@ st.markdown(
 )
 
 
-col1, col2 = st.columns(2)
-with col1:
-    language = st.text_input("LANGUAGE", value="python",
-        placeholder="python, rust, go, javascript...")
-with col2:
-    focus = st.text_input("REVIEW FOCUS", value="check bugs, security, and style",
-        placeholder="e.g. thread safety, SQL injection, PEP8")
+# ============================================================
+# SINGLE-PAGE FLOW
+# ============================================================
 
-code = st.text_area("CODE", height=320, placeholder="// paste your code here")
+# --- Section 1: input mode ---
+st.markdown('<div class="step-title">01 · input mode</div>', unsafe_allow_html=True)
+_mode = st.radio(
+    "Input mode",
+    ["Paste code", "GitHub PR URL"],
+    index=0 if st.session_state.input_mode == "Paste code" else 1,
+    horizontal=True,
+    label_visibility="collapsed",
+    key="input_mode_radio",
+)
+st.session_state.input_mode = _mode
 
-review_clicked = st.button("RUN REVIEW")
+st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+
+
+# --- Section 2: parameters ---
+st.markdown('<div class="step-title">02 · parameters</div>', unsafe_allow_html=True)
+_c1, _c2 = st.columns(2)
+with _c1:
+    st.session_state.language = st.text_input(
+        "LANGUAGE",
+        value=st.session_state.language,
+        placeholder="python, rust, go, javascript...",
+        key="lang_input_single",
+    )
+with _c2:
+    st.session_state.focus = st.text_input(
+        "REVIEW FOCUS",
+        value=st.session_state.focus,
+        placeholder="e.g. thread safety, SQL injection, PEP8",
+        key="focus_input_single",
+    )
+
+st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+
+
+# --- Section 3: code or PR URL ---
+if st.session_state.input_mode == "Paste code":
+    st.markdown('<div class="step-title">03 · code</div>', unsafe_allow_html=True)
+    st.session_state.code = st.text_area(
+        "CODE",
+        value=st.session_state.code,
+        height=320,
+        placeholder="// paste your code here",
+        key="code_input_single",
+    )
+    pr_url = None
+else:
+    st.markdown('<div class="step-title">03 · github pull request</div>', unsafe_allow_html=True)
+    st.session_state.pr_url = st.text_input(
+        "PULL REQUEST URL",
+        value=st.session_state.pr_url,
+        placeholder="https://github.com/owner/repo/pull/123",
+        key="pr_input_single",
+    )
+    st.caption("Public repos only · reviews the diff with context lines")
+
+    st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
+    _p1, _p2 = st.columns([1, 1])
+    with _p1:
+        if st.button("Fetch & preview diff", key="preview_diff_single", type="secondary"):
+            if not st.session_state.pr_url.strip():
+                st.warning("Please paste a PR URL first.")
+            else:
+                with st.spinner("Fetching diff from GitHub..."):
+                    try:
+                        diff = fetch_pr_diff(st.session_state.pr_url)
+                        st.session_state.preview_diff = diff
+                    except Exception as e:
+                        st.session_state.preview_diff = None
+                        st.error(f"Could not fetch diff: {e}")
+
+    if st.session_state.get("preview_diff"):
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+        st.markdown(
+            '<div class="step-title">diff preview · first 2000 chars</div>',
+            unsafe_allow_html=True,
+        )
+        st.code(st.session_state.preview_diff[:2000], language="diff")
+
+    pr_url = st.session_state.pr_url
+
+st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
+
+
+# --- RUN REVIEW ---
+review_clicked = st.button("▶ RUN REVIEW", key="run_single")
 
 
 if review_clicked:
-    if not code.strip():
-        st.warning("Please paste some code before running the review.")
-    else:
-        stages = ["analyzing code structure", "identifying issues",
-                  "ranking by severity", "writing suggestions"]
+    code_to_review = None
 
-        top_bar = st.empty()
-        top_bar.markdown('<div class="top-progress"></div>', unsafe_allow_html=True)
-
-        progress_placeholder = st.empty()
-        progress_placeholder.markdown(render_stages(stages, 0), unsafe_allow_html=True)
-        time.sleep(0.3)
-
-        try:
-            result = review_code(code, language, focus)
-        except Exception as e:
-            top_bar.empty()
-            progress_placeholder.empty()
-            st.error(f"Review failed: {type(e).__name__}: {e}")
+    if st.session_state.input_mode == "Paste code":
+        if not st.session_state.code.strip():
+            st.warning("Please paste some code before running the review.")
             st.stop()
+        code_to_review = st.session_state.code
+    else:
+        if not pr_url or not pr_url.strip():
+            st.warning("Please paste a GitHub PR URL before running the review.")
+            st.stop()
+        with st.spinner("Fetching PR diff..."):
+            try:
+                code_to_review = fetch_pr_diff(pr_url)
+            except Exception as e:
+                st.error(f"Could not fetch diff: {e}")
+                st.stop()
 
-        for i in range(1, len(stages)):
-            progress_placeholder.markdown(render_stages(stages, i), unsafe_allow_html=True)
-            time.sleep(0.15)
+    stages = ["analyzing code structure", "identifying issues",
+              "ranking by severity", "writing suggestions"]
 
-        progress_placeholder.markdown(render_stages(stages, len(stages), done=True), unsafe_allow_html=True)
-        time.sleep(0.4)
-        progress_placeholder.empty()
+    top_bar = st.empty()
+    top_bar.markdown('<div class="top-progress"></div>', unsafe_allow_html=True)
+
+    progress_placeholder = st.empty()
+    progress_placeholder.markdown(render_stages(stages, 0), unsafe_allow_html=True)
+    time.sleep(0.3)
+
+    try:
+        result = review_code(
+            code_to_review,
+            st.session_state.language,
+            st.session_state.focus,
+        )
+    except Exception as e:
         top_bar.empty()
+        progress_placeholder.empty()
+        st.error(f"Review failed: {type(e).__name__}: {e}")
+        st.stop()
 
-        v = result.verdict
-        m = result.meta
-        state_class = "ready" if v.ship_ready else "blocked"
-        status_text = "ship ready" if v.ship_ready else "not ready"
+    for i in range(1, len(stages)):
+        progress_placeholder.markdown(render_stages(stages, i), unsafe_allow_html=True)
+        time.sleep(0.15)
 
+    progress_placeholder.markdown(render_stages(stages, len(stages), done=True), unsafe_allow_html=True)
+    time.sleep(0.4)
+    progress_placeholder.empty()
+    top_bar.empty()
+
+    # ---- VERDICT ----
+    v = result.verdict
+    m = result.meta
+    state_class = "ready" if v.ship_ready else "blocked"
+    status_text = "ship ready" if v.ship_ready else "not ready"
+
+    st.markdown(
+        f'''
+        <div class="verdict {state_class}">
+            <div class="verdict-status"><span>{status_text}</span></div>
+            <div class="verdict-headline">{esc(v.headline)}</div>
+            <div class="verdict-oneliner">{esc(v.one_liner)}</div>
+        </div>
+        ''',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f'''
+        <div class="meta-strip">
+            <span class="meta-item">model<strong>{esc(m.language_detected)}</strong></span>
+            <span class="meta-item">confidence<strong>{esc(m.review_confidence)}</strong></span>
+            <span class="meta-item">lines<strong>{esc(m.lines_reviewed)}</strong></span>
+            <span class="meta-item">severity<strong>{esc(v.severity)}</strong></span>
+        </div>
+        ''',
+        unsafe_allow_html=True,
+    )
+
+    if result.findings:
         st.markdown(
-            f'''
-            <div class="verdict {state_class}">
-                <div class="verdict-status"><span>{status_text}</span></div>
-                <div class="verdict-headline">{esc(v.headline)}</div>
-                <div class="verdict-oneliner">{esc(v.one_liner)}</div>
-            </div>
-            ''',
+            f'<div style="font-family:JetBrains Mono,monospace;font-size:0.72rem;'
+            f'color:#7d8590;text-transform:uppercase;letter-spacing:0.16em;margin-bottom:1rem">'
+            f'findings · {len(result.findings)}</div>',
             unsafe_allow_html=True,
         )
+        for f in result.findings:
+            st.markdown(render_finding(f), unsafe_allow_html=True)
+            if f.code_before or f.code_after:
+                bc1, bc2 = st.columns(2)
+                with bc1:
+                    st.markdown(
+                        '<div style="font-family:JetBrains Mono,monospace;font-size:0.62rem;'
+                        'color:#7d8590;text-transform:uppercase;letter-spacing:0.16em;'
+                        'margin-bottom:0.35rem">before</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.code(f.code_before or "# (none)", language=st.session_state.language or "python")
+                with bc2:
+                    st.markdown(
+                        '<div style="font-family:JetBrains Mono,monospace;font-size:0.62rem;'
+                        'color:#7d8590;text-transform:uppercase;letter-spacing:0.16em;'
+                        'margin-bottom:0.35rem">after</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.code(f.code_after or "# (none)", language=st.session_state.language or "python")
+                st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+    else:
+        st.success("No issues found. Clean bill of health.")
 
-        st.markdown(
-            f'''
-            <div class="meta-strip">
-                <span class="meta-item">model<strong>{esc(m.language_detected)}</strong></span>
-                <span class="meta-item">confidence<strong>{esc(m.review_confidence)}</strong></span>
-                <span class="meta-item">lines<strong>{esc(m.lines_reviewed)}</strong></span>
-                <span class="meta-item">severity<strong>{esc(v.severity)}</strong></span>
-            </div>
-            ''',
-            unsafe_allow_html=True,
-        )
+    st.markdown("---")
 
-        if result.findings:
-            st.markdown(
-                f'<div style="font-family:JetBrains Mono,monospace;font-size:0.72rem;'
-                f'color:#7d8590;text-transform:uppercase;letter-spacing:0.16em;margin-bottom:1rem">'
-                f'findings · {len(result.findings)}</div>',
-                unsafe_allow_html=True,
-            )
-            for f in result.findings:
-                st.markdown(render_finding(f), unsafe_allow_html=True)
-                if f.code_before or f.code_after:
-                    bc1, bc2 = st.columns(2)
-                    with bc1:
-                        st.markdown(
-                            '<div style="font-family:JetBrains Mono,monospace;font-size:0.62rem;'
-                            'color:#7d8590;text-transform:uppercase;letter-spacing:0.16em;'
-                            'margin-bottom:0.35rem">before</div>',
-                            unsafe_allow_html=True,
-                        )
-                        st.code(f.code_before or "# (none)", language=language or "python")
-                    with bc2:
-                        st.markdown(
-                            '<div style="font-family:JetBrains Mono,monospace;font-size:0.62rem;'
-                            'color:#7d8590;text-transform:uppercase;letter-spacing:0.16em;'
-                            'margin-bottom:0.35rem">after</div>',
-                            unsafe_allow_html=True,
-                        )
-                        st.code(f.code_after or "# (none)", language=language or "python")
-                    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-        else:
-            st.success("No issues found. Clean bill of health.")
+    if result.strengths:
+        with st.expander(f"strengths · {len(result.strengths)}", expanded=True):
+            for s in result.strengths:
+                st.markdown(f"- {s}")
 
-        st.markdown("---")
+    if result.improved_code:
+        ic = result.improved_code
+        with st.expander("improved code", expanded=True):
+            st.caption(ic.notes)
+            st.code(ic.content, language=ic.language or "python")
 
-        if result.strengths:
-            with st.expander(f"strengths · {len(result.strengths)}", expanded=True):
-                for s in result.strengths:
-                    st.markdown(f"- {s}")
+    if result.followup_questions:
+        with st.expander(f"followup questions · {len(result.followup_questions)}"):
+            for q in result.followup_questions:
+                st.markdown(f"- {q}")
 
-        if result.improved_code:
-            ic = result.improved_code
-            with st.expander("improved code", expanded=True):
-                st.caption(ic.notes)
-                st.code(ic.content, language=ic.language or "python")
-
-        if result.followup_questions:
-            with st.expander(f"followup questions · {len(result.followup_questions)}"):
-                for q in result.followup_questions:
-                    st.markdown(f"- {q}")
-
-        with st.expander("raw json · for debugging"):
-            st.json(result.model_dump())
+    with st.expander("raw json · for debugging"):
+        st.json(result.model_dump())
