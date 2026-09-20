@@ -31,7 +31,6 @@ An AI-powered code review tool. Paste code or a GitHub pull request URL, and rec
 ---
 
 ## Architecture
-
 Browser (Streamlit Cloud)
 |
 v
@@ -94,9 +93,6 @@ Requirements: Python 3.11+, a Gemini API key from https://aistudio.google.com/ap
 pip install -r requirements.txt
 echo "GEMINI_API_KEY=your_key_here" > .env
 streamlit run app.py
-The app reads GEMINI_API_KEY from .env locally, or from Streamlit secrets when deployed.
-
-
 Deployment
 The app is deployed on Streamlit Community Cloud:
 
@@ -107,6 +103,7 @@ Streamlit Cloud detects the push and rebuilds automatically
 API key is configured in the Streamlit Cloud dashboard under Advanced Settings
 
 No manual redeploy step is required.
+
 What I Learned Building This
 Enforcing LLM output shape with Pydantic is more reliable than instructing the model to "return valid JSON." The schema guarantee eliminates a whole class of bugs.
 
@@ -128,3 +125,9 @@ Roadmap
 □ Severity filtering in the results view
 License
 MIT
+
+
+
+
+
+
