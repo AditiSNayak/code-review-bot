@@ -207,6 +207,34 @@ st.markdown("""
     }
     .brand-wordmark .dim { color: #7d8590; font-weight: 500; }
 
+    /* ---------- Hero counter ---------- */
+    .brand-row {
+        position: relative;
+    }
+    .hero-counter {
+        margin-left: auto;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-right: 0.25rem;
+    }
+    .hero-counter .hc-sep {
+        opacity: 0.5;
+    }
+    .hero-counter .hc-num {
+        color: var(--text);
+        font-weight: 500;
+        letter-spacing: 0;
+        font-size: 1rem;
+        min-width: 1ch;
+        display: inline-block;
+    }
+
     /* ---------- Verdict banner ---------- */
     .verdict {
         position: relative;
@@ -574,11 +602,14 @@ if "pr_url" not in st.session_state:
 
 
 # HERO — no tagline
+_count = st.session_state.get("review_count", 0)
+
 st.markdown(
     f'''
     <div class="brand-row">
         <a href="https://github.com/AditiSNayak/code-review-bot" target="_blank">{OCTOCAT_SVG}</a>
         <div class="brand-wordmark">code_review<span class="dim">.bot</span></div>
+        <div class="hero-counter">reviews<span class="hc-sep">·</span><span class="hc-num">{_count}</span></div>
     </div>
     ''',
     unsafe_allow_html=True,
@@ -679,6 +710,7 @@ review_clicked = st.button("▶ RUN REVIEW", key="run_single")
 
 
 if review_clicked:
+    st.session_state.review_count = st.session_state.get("review_count", 0) + 1
     code_to_review = None
 
     if st.session_state.input_mode == "Paste code":
