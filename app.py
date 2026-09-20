@@ -235,6 +235,40 @@ st.markdown("""
         display: inline-block;
     }
 
+    /* ---------- Streaming prelude ---------- */
+    .prelude-block {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 10px;
+        padding: 1.15rem 1.4rem;
+        margin: 0.5rem 0 1.25rem 0;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.88rem;
+        line-height: 1.7;
+        color: #c9d1d9;
+        animation: fadeUp 0.3s ease;
+    }
+    .prelude-block .prelude-label {
+        display: block;
+        font-size: 0.62rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-weight: 500;
+        margin-bottom: 0.55rem;
+    }
+    .prelude-block .prelude-cursor {
+        display: inline-block;
+        width: 8px;
+        color: var(--accent);
+        animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50%      { opacity: 0; }
+    }
+
     /* ---------- Verdict banner ---------- */
     .verdict {
         position: relative;
@@ -729,11 +763,38 @@ if review_clicked:
                 st.error(f"Could not fetch diff: {e}")
                 st.stop()
 
-    stages = ["analyzing code structure", "identifying issues",
-              "ranking by severity", "writing suggestions"]
-
     top_bar = st.empty()
     top_bar.markdown('<div class="top-progress"></div>', unsafe_allow_html=True)
+
+    # ---- Streaming prelude: real token-by-token text ----
+    prelude_placeholder = st.empty()
+    prelude_text = ""
+
+    def _render_prelude(text, streaming=True):
+        cursor = '<span class="prelude-cursor">▍</span>' if streaming else ''
+        return (
+            '<div class="prelude-block">'
+            '<span class="prelude-label">prelude</span>'
+            + esc(text).replace("\n", "<br>")
+            + cursor
+            + '</div>'
+        )
+
+    prelude_placeholder.markdown(_render_prelude("", True), unsafe_allow_html=True)
+
+    try:
+        for chunk in stream_prelude(code_to_review, st.session_state.language, st.session_state.focus):
+            prelude_text += chunk
+            prelude_placeholder.markdown(_render_prelude(prelude_text, True), unsafe_allow_html=True)
+        # settle: remove the blinking cursor
+        prelude_placeholder.markdown(_render_prelude(prelude_text, False), unsafe_allow_html=True)
+    except Exception as e:
+        # prelude failed but we still want the review to run
+        prelude_placeholder.empty()
+
+    # ---- Stage progress while the structured review runs ----
+    stages = ["analyzing code structure", "identifying issues",
+              "ranking by severity", "writing suggestions"]
 
     progress_placeholder = st.empty()
     progress_placeholder.markdown(render_stages(stages, 0), unsafe_allow_html=True)

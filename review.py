@@ -219,3 +219,55 @@ def fetch_pr_diff(pr_url: str) -> str:
         raise RuntimeError("PR diff is empty (no code changes to review).")
 
     return diff
+
+
+# ============================================================
+# Streaming prelude (Step 8)
+# ============================================================
+PRELUDE_PROMPT = """You are a senior software engineer about to review some code.
+
+In 2 to 3 short sentences, describe what you are looking at and name the
+top 2-3 concerns or notable things you notice. Write in second person ("your code..."),
+conversational but professional. No bullet points, no markdown, no preamble like
+"Sure!" — just the sentences themselves.
+
+Focus hint from the user: {focus}
+Language: {language}
+
+The code:
+{code}
+"""
+
+
+def stream_prelude(code: str, language: str, focus: str):
+    """
+    Generator that yields text chunks from a streaming Gemini call.
+    Caller iterates and appends chunks to a UI element.
+    """
+    if not code or not code.strip():
+        yield "No code to scan."
+        return
+
+    prompt = PRELUDE_PROMPT.format(
+        focus=focus or "general review",
+        language=language or "unknown",
+        code=code[:4000],  # cap to keep the prelude call fast
+    )
+
+    # Try the primary model; if it errors mid-stream, fall back to the next
+    for model_name in MODEL_CHAIN:
+        try:
+            stream = client.models.generate_content_stream(
+                model=model_name,
+                contents=prompt,
+            )
+            for chunk in stream:
+                if getattr(chunk, "text", None):
+                    yield chunk.text
+            return  # success — stop trying models
+        except Exception as e:
+            print(f"[prelude FAIL] {model_name}: {type(e).__name__}")
+            continue
+
+    # All models failed — yield a graceful message instead of raising
+    yield "Live preview unavailable — running the review now."
