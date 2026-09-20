@@ -31,17 +31,20 @@ An AI-powered code review tool. Paste code or a GitHub pull request URL, and rec
 ---
 
 ## Architecture
+
+```
 Browser (Streamlit Cloud)
-|
-v
-app.py -> UI, wizard state, streaming render, findings display
-|
-v
-review.py -> Prompt construction, Pydantic schema, model fallback,
-streaming prelude, GitHub PR diff fetcher
-|
-v
-Gemini API -> Streaming narrative + structured JSON review
+    |
+    v
+app.py  ->  UI, wizard state, streaming render, findings display
+    |
+    v
+review.py  ->  Prompt construction, Pydantic schema, model fallback,
+               streaming prelude, GitHub PR diff fetcher
+    |
+    v
+Gemini API  ->  Streaming narrative + structured JSON review
+```
 
 Two LLM calls per review:
 
@@ -93,41 +96,45 @@ Requirements: Python 3.11+, a Gemini API key from https://aistudio.google.com/ap
 pip install -r requirements.txt
 echo "GEMINI_API_KEY=your_key_here" > .env
 streamlit run app.py
-Deployment
+```
+
+The app reads GEMINI_API_KEY from .env locally, or from Streamlit secrets when deployed.
+
+---
+
+## Deployment
+
 The app is deployed on Streamlit Community Cloud:
 
-Push to the main branch of the GitHub repository
-
-Streamlit Cloud detects the push and rebuilds automatically
-
-API key is configured in the Streamlit Cloud dashboard under Advanced Settings
+1. Push to the main branch of the GitHub repository
+2. Streamlit Cloud detects the push and rebuilds automatically
+3. API key is configured in the Streamlit Cloud dashboard under Advanced Settings
 
 No manual redeploy step is required.
 
-What I Learned Building This
-Enforcing LLM output shape with Pydantic is more reliable than instructing the model to "return valid JSON." The schema guarantee eliminates a whole class of bugs.
+---
 
-Fixed schema plus dynamic content is the right abstraction. The shape stays stable while the review focus changes.
+## What I Learned Building This
 
-Production LLM apps need fallback chains. Free-tier APIs go down under load, and a single hardcoded model name is a single point of failure.
+- Enforcing LLM output shape with Pydantic is more reliable than instructing the model to "return valid JSON." The schema guarantee eliminates a whole class of bugs.
+- Fixed schema plus dynamic content is the right abstraction. The shape stays stable while the review focus changes.
+- Production LLM apps need fallback chains. Free-tier APIs go down under load, and a single hardcoded model name is a single point of failure.
+- Streaming is a UX pattern, not a technical flex. Users tolerate long waits when they can see progress. Two-call streaming works well for schema-constrained outputs.
+- Cloud-native development eliminates friction. Codespaces plus Streamlit Cloud meant zero local setup throughout the build.
+- Simple beats clever in UI decisions. A wizard felt heavier than a sectioned single-page flow for this use case.
 
-Streaming is a UX pattern, not a technical flex. Users tolerate long waits when they can see progress. Two-call streaming works well for schema-constrained outputs.
+---
 
-Cloud-native development eliminates friction. Codespaces plus Streamlit Cloud meant zero local setup throughout the build.
+## Roadmap
 
-Simple beats clever in UI decisions. A wizard felt heavier than a sectioned single-page flow for this use case.
+- [ ] Review entire files instead of just diffs
+- [ ] Private repository support via GitHub token
+- [ ] Export review as Markdown
+- [ ] Save review history per session
+- [ ] Severity filtering in the results view
 
-Roadmap
-□ Review entire files instead of just diffs
-□ Private repository support via GitHub token
-□ Export review as Markdown
-□ Save review history per session
-□ Severity filtering in the results view
-License
+---
+
+## License
+
 MIT
-
-
-
-
-
-
